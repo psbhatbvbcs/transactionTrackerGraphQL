@@ -16,10 +16,12 @@ import mergedTypeDefs from "./typeDefs/index.js";
 import { connectDB } from "./database/connectDB.js";
 import { buildContext } from "graphql-passport";
 import { configurePassport } from "./passport/passport.config.js";
+import path from "path";
 
 dotenv.config();
 configurePassport();
 
+const __dirname = path.resolve();
 const app = express();
 const httpServer = http.createServer(app);
 
@@ -68,6 +70,12 @@ app.use(
     context: async ({ req, res }) => buildContext({ req, res }),
   })
 );
+
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
+});
 
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
 await connectDB();
