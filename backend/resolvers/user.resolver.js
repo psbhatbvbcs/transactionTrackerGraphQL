@@ -1,4 +1,4 @@
-import { users } from "../dummyData/data.js";
+import Transaction from "../models/transaction.model.js";
 import User from "../models/user.model.js";
 
 import bcrypt from "bcryptjs";
@@ -45,24 +45,38 @@ const userResolver = {
     login: async (_, { input }, context) => {
       try {
         const { username, password } = input;
+        if (!username || !password) throw new Error("All fields are required");
+
+        // Attempt to authenticate the user
         const { user } = await context.authenticate("graphql-local", {
           username,
           password,
         });
+
+        // If authentication is successful, log in the user
         await context.login(user);
+
+        // Return the authenticated user
         return user;
-      } catch (error) {
-        console.log("Error in login: ", error);
-        throw new Error(error.message || "Internal Server Error");
+      } catch (err) {
+        // Handle authentication errors
+        console.error("Error in login:", err);
+        // If the error is related to authentication failure, return a specific error message
+        if (err.name === "AuthenticationError") {
+          throw new Error("Incorrect username or password");
+        } else {
+          // If the error is not related to authentication failure, return a generic error message
+          throw new Error(err.message || "Internal server error");
+        }
       }
     },
     logout: async (_, __, context) => {
       try {
         await context.logout();
-        req.session.destroy((error) => {
+        context.req.session.destroy((error) => {
           if (error) throw error;
         });
-        res.clearCookie("connect.sid");
+        context.res.clearCookie("connect.sid");
         return { message: "Logged out successfully" };
       } catch (error) {
         console.log("Error in logout: ", error);
@@ -90,7 +104,17 @@ const userResolver = {
       }
     },
   },
-  Mutation: {},
+  User: {
+    transactions: async (parent, __, ___) => {
+      try {
+        const transactions = await Transaction.find({ userId: parent._id });
+        return transactions;
+      } catch (error) {
+        console.log("Error in transactions resolver: ", error);
+        throw new Error(error.message || "Internal Server Error");
+      }
+    },
+  },
 };
 
 export default userResolver;

@@ -34,7 +34,9 @@ export const configurePassport = async () => {
         }
 
         return done(null, user);
-      } catch (error) {}
+      } catch (error) {
+        return done(error);
+      }
     })
   );
 };
